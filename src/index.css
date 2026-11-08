@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #0c0a09;
+    color: #f8fafc;
+  }
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  }
+  .font-sport {
+    font-family: 'Bebas Neue', 'Outfit', sans-serif;
+    letter-spacing: 0.04em;
+  }
+  /* Ensure all inputs and dropdowns have high-contrast dark text */
+  input, select, textarea, option {
+    color: #0f172a !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+  }
+  select option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+}
+
+/* Custom scrollbar in Pro Red & Gold */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1c1917; border-radius: 9999px; }
+::-webkit-scrollbar-thumb { 
+  background: linear-gradient(180deg, #d97706, #dc2626); 
+  border-radius: 9999px; 
+}
+::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+/* Championship Stadium Background in Deep Crimson & Gold */
+.bg-pitch-pattern {
+  background-color: #450a0a;
+  background-image:
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.22) 0px, transparent 55%),
+    radial-gradient(at 0% 100%, rgba(220, 38, 38, 0.3) 0px, transparent 55%),
+    radial-gradient(at 50% 50%, rgba(251, 191, 36, 0.08) 0px, transparent 65%),
+    linear-gradient(rgba(254, 240, 138, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(254, 240, 138, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.glass-dark {
+  background: rgba(69, 10, 10, 0.85);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+
+/* =============================================
+   CHAMPIONSHIP TOURNAMENT ANIMATIONS
+   ============================================= */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes shimmer-move {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), 0 0 40px rgba(220, 38, 38, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.7), 0 0 80px rgba(220, 38, 38, 0.4); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes dawn-rise {
+  0% { opacity: 0; transform: translateY(50px) scale(0.92); }
+  65% { opacity: 1; transform: translateY(-6px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes ping-soft {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.35; }
+}
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(245, 158, 11, 0.4); }
+  50% { border-color: rgba(245, 158, 11, 0.95); }
+}
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.92) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Utility classes */
+.animate-float          { animation: float 3.5s ease-in-out infinite; }
+.animate-slide-up       { animation: slide-up 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-scale-in       { animation: scale-in 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-glow-pulse     { animation: glow-pulse 2.4s ease-in-out infinite; }
+.animate-spin-slow      { animation: spin-slow 14s linear infinite; }
+.animate-dawn-rise      { animation: dawn-rise 0.9s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-fade-in-up     { animation: fade-in-up 0.6s ease both; }
+.animate-ticker         { animation: ticker-scroll 28s linear infinite; }
+.animate-ping-soft      { animation: ping-soft 2.2s ease-in-out infinite; }
+.animate-border-glow    { animation: border-glow 2s ease-in-out infinite; }
+.animate-count-up       { animation: count-up 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-modal-in       { animation: modal-in 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* Delays */
+.delay-100  { animation-delay: 0.1s; }
+.delay-150  { animation-delay: 0.15s; }
+.delay-200  { animation-delay: 0.2s; }
+.delay-300  { animation-delay: 0.3s; }
+.delay-400  { animation-delay: 0.4s; }
+.delay-500  { animation-delay: 0.5s; }
+.delay-600  { animation-delay: 0.6s; }
+.delay-700  { animation-delay: 0.7s; }
+.delay-800  { animation-delay: 0.8s; }
+.delay-900  { animation-delay: 0.9s; }
+
+/* Metallic Red & Gold Shimmer text */
+.text-shimmer {
+  background: linear-gradient(90deg, #fef08a 0%, #fbbf24 25%, #f59e0b 50%, #f43f5e 75%, #fef08a 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer-move 4s linear infinite;
+}
+
+/* Gold Gradient Text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #fef08a 0%, #fbbf24 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Ticker strip */
+.ticker-wrap {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-track {
+  display: inline-flex;
+  animation: ticker-scroll 28s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+
+/* =============================================
+   A4 PRINT & OFFICIAL TOURNAMENT DOSSIER SPECIFICATION
+   ============================================= */
+
+@page {
+  size: A4 portrait;
+  margin: 8mm 6mm 8mm 6mm;
+}
+
+/* Authentic A4 Document Sheet (Screen View & Print) */
+.a4-sheet-page {
+  position: relative;
+  background-color: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+/* On-screen A4 Paper Preview */
+.a4-paper-container {
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 2.5rem auto;
+  padding: 12mm 10mm;
+  background: #ffffff;
+  border-radius: 2px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+@media print {
+  /* Hide all non-printable UI elements */
+  nav, footer, .no-print, header, .ticker-wrap, .admin-navbar, button:not(.print-include) {
+    display: none !important;
+  }
+
+  /* Reset body and viewport for physical paper */
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 9.5pt;
+    line-height: 1.3;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Strip background wallpaper and dark paddings */
+  #root, main, .bg-pitch-pattern, .max-w-5xl, .max-w-7xl {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Force printable sheet to fill A4 sheet cleanly */
+  .a4-paper-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 275mm !important;
+    margin: 0 !important;
+    padding: 2mm 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .a4-paper-container:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .a4-page-break {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .avoid-break, tr, .avoid-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+

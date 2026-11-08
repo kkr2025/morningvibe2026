@@ -1,0 +1,245 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGlow" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#7f1d1d" />
+      <stop offset="35%" stop-color="#450a0a" />
+      <stop offset="70%" stop-color="#1c0404" />
+      <stop offset="100%" stop-color="#0a0101" />
+    </radialGradient>
+
+    <!-- Stadium Spotlight Cones -->
+    <linearGradient id="spotlightLeft" x1="0%" y1="0%" x2="70%" y2="80%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#dc2626" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="spotlightRight" x1="100%" y1="0%" x2="30%" y2="80%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.35" />
+      <stop offset="60%" stop-color="#dc2626" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Gold Foil Gradients -->
+    <linearGradient id="goldMetallic" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="25%" stop-color="#f59e0b" />
+      <stop offset="50%" stop-color="#fffbeb" />
+      <stop offset="75%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+
+    <linearGradient id="goldBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#d97706" />
+      <stop offset="100%" stop-color="#78350f" />
+    </linearGradient>
+
+    <linearGradient id="rubyRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#991b1b" />
+      <stop offset="30%" stop-color="#dc2626" />
+      <stop offset="50%" stop-color="#ef4444" />
+      <stop offset="70%" stop-color="#dc2626" />
+      <stop offset="100%" stop-color="#7f1d1d" />
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="heavyShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.9" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1200" height="800" fill="url(#bgGlow)" />
+
+  <!-- Stadium Floodlights Cones -->
+  <polygon points="60,20 0,600 500,800" fill="url(#spotlightLeft)" />
+  <polygon points="1140,20 1200,600 700,800" fill="url(#spotlightRight)" />
+
+  <!-- Stadium Floodlight Towers -->
+  <g fill="#fef08a" opacity="0.85" filter="url(#goldGlow)">
+    <circle cx="60" cy="30" r="14" />
+    <circle cx="95" cy="35" r="10" />
+    <circle cx="130" cy="45" r="8" />
+    <circle cx="1140" cy="30" r="14" />
+    <circle cx="1105" cy="35" r="10" />
+    <circle cx="1070" cy="45" r="8" />
+  </g>
+
+  <!-- Stadium Crowd Silhouette at Bottom -->
+  <path d="M0,740 Q150,710 300,730 T600,720 T900,735 T1200,725 L1200,800 L0,800 Z" fill="#050101" opacity="0.9" />
+  <path d="M0,760 Q200,740 400,755 T800,745 T1200,750 L1200,800 L0,800 Z" fill="#000000" />
+
+  <!-- Football Player Left Silhouette: Bicycle Kick Striker -->
+  <g fill="#120202" opacity="0.65" transform="translate(140, 220) scale(0.9)">
+    <!-- Striker Silhouette -->
+    <path d="M120,180 C110,170 95,175 85,190 C70,210 60,240 75,270 C85,290 120,310 145,290 C165,275 180,240 170,210 C160,185 135,175 120,180 Z" />
+    <circle cx="160" cy="140" r="28" />
+    <!-- Extended Kick Leg -->
+    <path d="M130,260 L240,160 L280,180 L180,300 Z" />
+    <!-- Supporting Leg -->
+    <path d="M90,270 L30,340 L55,360 L120,300 Z" />
+    <!-- Arms Outstretched -->
+    <path d="M150,210 L190,140 L210,150 L170,230 Z" />
+    <path d="M100,210 L50,170 L35,185 L90,235 Z" />
+  </g>
+
+  <!-- Football Player Right Silhouette: Running Forward Celebration -->
+  <g fill="#120202" opacity="0.65" transform="translate(860, 260) scale(0.85)">
+    <circle cx="100" cy="80" r="26" />
+    <path d="M85,115 L120,115 L140,220 L70,215 Z" />
+    <path d="M80,215 L50,330 L75,340 L110,230 Z" />
+    <path d="M130,215 L170,310 L195,295 L145,215 Z" />
+    <!-- Arms raised in victory -->
+    <path d="M85,130 L30,70 L48,55 L95,120 Z" />
+    <path d="M115,130 L170,70 L188,85 L125,125 Z" />
+  </g>
+
+  <!-- Center Championship Aura -->
+  <circle cx="600" cy="380" r="320" fill="#dc2626" opacity="0.25" filter="url(#goldGlow)" />
+  <circle cx="600" cy="360" r="220" fill="#f59e0b" opacity="0.2" filter="url(#goldGlow)" />
+
+  <!-- 3D Championship Shield Crest -->
+  <g filter="url(#heavyShadow)">
+    <!-- Outer Shield Border -->
+    <path d="M600,100 L760,170 C760,340 680,470 600,520 C520,470 440,340 440,170 Z" 
+          fill="url(#goldBorder)" />
+
+    <!-- Inner Shield Body -->
+    <path d="M600,118 L744,182 C744,332 670,452 600,498 C530,452 456,332 456,182 Z" 
+          fill="#3b0404" stroke="#f59e0b" stroke-width="4" />
+
+    <!-- Shield Inner Stripes -->
+    <path d="M600,125 L730,188 C730,325 665,435 600,478 C535,435 470,325 470,188 Z" 
+          fill="#4c0505" />
+    
+    <path d="M560,135 L640,135 C640,460 600,478 600,478 C600,478 560,460 560,135 Z" 
+          fill="#7f1d1d" opacity="0.6" />
+  </g>
+
+  <!-- Golden 3D Soccer Ball Center Top -->
+  <g transform="translate(600, 250)" filter="url(#goldGlow)">
+    <!-- Outer Glow -->
+    <circle cx="0" cy="0" r="76" fill="#000000" />
+    <circle cx="0" cy="0" r="72" fill="#ffffff" stroke="url(#goldMetallic)" stroke-width="5" />
+    <!-- Soccer Pentagons / Hexagons -->
+    <polygon points="0,-36 28,-14 18,22 -18,22 -28,-14" fill="#0f172a" />
+    <!-- Connecting Lines -->
+    <line x1="0" y1="-36" x2="0" y2="-68" stroke="#0f172a" stroke-width="4" />
+    <line x1="28" y1="-14" x2="62" y2="-28" stroke="#0f172a" stroke-width="4" />
+    <line x1="18" y1="22" x2="44" y2="54" stroke="#0f172a" stroke-width="4" />
+    <line x1="-18" y1="22" x2="-44" y2="54" stroke="#0f172a" stroke-width="4" />
+    <line x1="-28" y1="-14" x2="-62" y2="-28" stroke="#0f172a" stroke-width="4" />
+    <!-- Ball Highlight Reflex -->
+    <ellipse cx="-24" cy="-28" rx="20" ry="12" fill="#ffffff" opacity="0.5" transform="rotate(-30, -24, -28)" />
+  </g>
+
+  <!-- Golden Laurel Wreath flanking the shield -->
+  <g fill="url(#goldMetallic)" opacity="0.9" filter="url(#goldGlow)">
+    <!-- Left Wreath Leaves -->
+    <ellipse cx="400" cy="220" rx="18" ry="7" transform="rotate(-40, 400, 220)" />
+    <ellipse cx="380" cy="260" rx="20" ry="8" transform="rotate(-25, 380, 260)" />
+    <ellipse cx="370" cy="310" rx="22" ry="8" transform="rotate(-5, 370, 310)" />
+    <ellipse cx="375" cy="360" rx="22" ry="8" transform="rotate(15, 375, 360)" />
+    <ellipse cx="395" cy="410" rx="20" ry="8" transform="rotate(35, 395, 410)" />
+    <ellipse cx="430" cy="455" rx="18" ry="7" transform="rotate(55, 430, 455)" />
+
+    <!-- Right Wreath Leaves -->
+    <ellipse cx="800" cy="220" rx="18" ry="7" transform="rotate(40, 800, 220)" />
+    <ellipse cx="820" cy="260" rx="20" ry="8" transform="rotate(25, 820, 260)" />
+    <ellipse cx="830" cy="310" rx="22" ry="8" transform="rotate(5, 830, 310)" />
+    <ellipse cx="825" cy="360" rx="22" ry="8" transform="rotate(-15, 825, 360)" />
+    <ellipse cx="805" cy="410" rx="20" ry="8" transform="rotate(-35, 805, 410)" />
+    <ellipse cx="770" cy="455" rx="18" ry="7" transform="rotate(-55, 770, 455)" />
+  </g>
+
+  <!-- 5 Gold Championship Stars above Shield -->
+  <g fill="url(#goldMetallic)" filter="url(#goldGlow)" transform="translate(600, 75)">
+    <!-- Center Big Star -->
+    <path d="M0,-24 L7,-7 L25,-7 L11,4 L16,21 L0,10 L-16,21 L-11,4 L-25,-7 L-7,-7 Z" transform="scale(1.2)" />
+    <!-- Left Stars -->
+    <path d="M-55,-18 L-49,-3 L-33,-3 L-45,6 L-41,21 L-55,11 L-69,21 L-65,6 L-77,-3 L-61,-3 Z" transform="scale(0.9)" />
+    <path d="M-115,-10 L-110,2 L-96,2 L-106,10 L-102,23 L-115,14 L-128,23 L-124,10 L-134,2 L-120,2 Z" transform="scale(0.7)" />
+    <!-- Right Stars -->
+    <path d="M55,-18 L61,-3 L77,-3 L65,6 L69,21 L55,11 L41,21 L45,6 L33,-3 L49,-3 Z" transform="scale(0.9)" />
+    <path d="M115,-10 L120,2 L134,2 L124,10 L128,23 L115,14 L102,23 L106,10 L96,2 L110,2 Z" transform="scale(0.7)" />
+  </g>
+
+  <!-- Big Bold 3D Banner Title: MORNING FOOTBALL CUP -->
+  <g filter="url(#heavyShadow)">
+    <!-- Back drop shadow stroke for contrast -->
+    <text x="600" y="555" 
+          font-family="'Impact', 'Bebas Neue', 'Arial Black', sans-serif" 
+          font-size="68" 
+          font-weight="900" 
+          letter-spacing="4"
+          text-anchor="middle" 
+          fill="#1c0303" 
+          stroke="#000000" 
+          stroke-width="14">
+      MORNING FOOTBALL CUP
+    </text>
+
+    <!-- Golden Front Text -->
+    <text x="600" y="555" 
+          font-family="'Impact', 'Bebas Neue', 'Arial Black', sans-serif" 
+          font-size="68" 
+          font-weight="900" 
+          letter-spacing="4"
+          text-anchor="middle" 
+          fill="url(#goldMetallic)" 
+          stroke="#78350f" 
+          stroke-width="3">
+      MORNING FOOTBALL CUP
+    </text>
+  </g>
+
+  <!-- Red & Gold Ribbon: SEASON 6 -->
+  <g filter="url(#heavyShadow)" transform="translate(600, 630)">
+    <!-- Ribbon Tails -->
+    <polygon points="-280,0 -320,-25 -300,15 -320,45 -280,30" fill="#7f1d1d" />
+    <polygon points="280,0 320,-25 300,15 320,45 280,30" fill="#7f1d1d" />
+
+    <!-- Ribbon Main Center Plate -->
+    <polygon points="-280,-20 280,-20 250,42 -250,42" fill="url(#rubyRibbon)" stroke="url(#goldMetallic)" stroke-width="4" />
+
+    <!-- Inner Ribbon Golden Border -->
+    <line x1="-250" y1="-12" x2="250" y2="-12" stroke="#fef08a" stroke-width="1.5" stroke-dasharray="6,4" />
+    <line x1="-225" y1="34" x2="225" y2="34" stroke="#fef08a" stroke-width="1.5" stroke-dasharray="6,4" />
+
+    <!-- Ribbon Text: SEASON 6 -->
+    <text x="0" y="22" 
+          font-family="'Impact', 'Bebas Neue', 'Arial Black', sans-serif" 
+          font-size="44" 
+          font-weight="900" 
+          letter-spacing="8" 
+          text-anchor="middle" 
+          fill="#ffffff" 
+          stroke="#450a0a" 
+          stroke-width="2"
+          filter="url(#goldGlow)">
+      ★ SEASON 6 ★
+    </text>
+  </g>
+
+  <!-- Bottom Tagline & Venue Bar -->
+  <g transform="translate(600, 715)">
+    <!-- Small background pill -->
+    <rect x="-240" y="-18" width="480" height="34" rx="17" fill="#000000" opacity="0.75" stroke="#f59e0b" stroke-width="1.5" />
+    <text x="0" y="4" 
+          font-family="'Plus Jakarta Sans', 'Arial', sans-serif" 
+          font-size="14" 
+          font-weight="800" 
+          letter-spacing="3" 
+          text-anchor="middle" 
+          fill="#fef08a">
+      MORNING FOOTBALL VIBES · PANDALLUR
+    </text>
+  </g>
+</svg>
