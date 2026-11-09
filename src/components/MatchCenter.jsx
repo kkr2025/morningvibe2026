@@ -227,19 +227,19 @@ export default function MatchCenter({
                 {/* Match Events Summary (Goals & Disciplinary Cards) */}
                 {match.events && match.events.length > 0 && (
                   <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center gap-1.5">
-                    {match.events.slice(0, 5).map((evt, idx) => (
+                    {match.events.slice(0, 6).map((evt, idx) => (
                       <span
                         key={idx}
                         className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-700 font-semibold"
                       >
                         <span>{evt.type === 'goal' ? '⚽' : evt.type === 'red_card' ? '🟥' : '🟨'}</span>
-                        <span className="font-extrabold">{evt.player_name}</span>
+                        <span className="font-extrabold">{evt.playerName || evt.player_name || '?'}</span>
                         {evt.minute && <span className="text-slate-400 text-[10px]">{evt.minute}'</span>}
                       </span>
                     ))}
-                    {match.events.length > 5 && (
+                    {match.events.length > 6 && (
                       <span className="text-[10px] text-slate-400 font-bold px-1.5">
-                        +{match.events.length - 5} more
+                        +{match.events.length - 6} more
                       </span>
                     )}
                   </div>

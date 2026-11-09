@@ -966,7 +966,7 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
                   </div>
 
                   {/* Player Selector */}
-                  <div className="sm:col-span-6">
+                  <div className="sm:col-span-5">
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Player</label>
                     <select
                       value={eventPlayerId}
@@ -992,26 +992,26 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
                   </div>
 
                   {/* Minute + Add Button */}
-                  <div className="sm:col-span-3 flex gap-1.5">
-                    <div className="flex-1">
+                  <div className="sm:col-span-4 flex gap-2">
+                    <div className="w-20 flex-shrink-0">
                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Min</label>
                       <input
                         type="number"
-                        placeholder="e.g. 45"
+                        placeholder="45"
                         min="1"
                         value={eventMinute}
                         onChange={(e) => setEventMinute(e.target.value)}
-                        className="w-full px-2 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-center"
+                        className="w-full px-3 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-base font-black text-center focus:border-amber-400 focus:outline-none"
                       />
                     </div>
-                    <div className="flex flex-col justify-end">
+                    <div className="flex flex-col justify-end flex-1">
                       <button
                         type="button"
                         onClick={handleAddEvent}
                         disabled={!eventPlayerId}
-                        className="px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black transition-colors disabled:opacity-40"
+                        className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black transition-colors disabled:opacity-40"
                       >
-                        Add
+                        + Add
                       </button>
                     </div>
                   </div>

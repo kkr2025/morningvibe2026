@@ -678,28 +678,32 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
         }).eq('id', awayTeam.id);
       }
 
-      // Update individual player goals if provided
-      if (playerScorers && playerScorers.length > 0) {
-        for (const scorer of playerScorers) {
-          if (scorer.playerId && scorer.count > 0) {
-            const { data: p } = await supabase.from('players').select('goals').eq('id', scorer.playerId).single();
-            if (p) {
-              await supabase.from('players').update({ goals: (p.goals || 0) + scorer.count }).eq('id', scorer.playerId);
+      // Only update player goals/cards if this is a FRESH completion (not re-scoring)
+      // This prevents double-counting when admin edits a completed match
+      if (!wasAlreadyCompleted) {
+        // Update individual player goals if provided
+        if (playerScorers && playerScorers.length > 0) {
+          for (const scorer of playerScorers) {
+            if (scorer.playerId && scorer.count > 0) {
+              const { data: p } = await supabase.from('players').select('goals').eq('id', scorer.playerId).single();
+              if (p) {
+                await supabase.from('players').update({ goals: (p.goals || 0) + scorer.count }).eq('id', scorer.playerId);
+              }
             }
           }
         }
-      }
 
-      // Update player cards in Supabase players table
-      if (events && events.length > 0) {
-        for (const ev of events) {
-          if (!ev.playerId) continue;
-          if (ev.type === 'yellow_card') {
-            const { data: p } = await supabase.from('players').select('yellow_cards').eq('id', ev.playerId).single();
-            if (p) await supabase.from('players').update({ yellow_cards: (p.yellow_cards || 0) + 1 }).eq('id', ev.playerId);
-          } else if (ev.type === 'red_card') {
-            const { data: p } = await supabase.from('players').select('red_cards').eq('id', ev.playerId).single();
-            if (p) await supabase.from('players').update({ red_cards: (p.red_cards || 0) + 1 }).eq('id', ev.playerId);
+        // Update player cards in Supabase players table
+        if (events && events.length > 0) {
+          for (const ev of events) {
+            if (!ev.playerId) continue;
+            if (ev.type === 'yellow_card') {
+              const { data: p } = await supabase.from('players').select('yellow_cards').eq('id', ev.playerId).single();
+              if (p) await supabase.from('players').update({ yellow_cards: (p.yellow_cards || 0) + 1 }).eq('id', ev.playerId);
+            } else if (ev.type === 'red_card') {
+              const { data: p } = await supabase.from('players').select('red_cards').eq('id', ev.playerId).single();
+              if (p) await supabase.from('players').update({ red_cards: (p.red_cards || 0) + 1 }).eq('id', ev.playerId);
+            }
           }
         }
       }
@@ -719,6 +723,9 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
 
   const matchIndex = matches.findIndex(m => m.id === matchId);
   const match = matchIndex !== -1 ? matches[matchIndex] : null;
+
+  // Track if this match was already completed BEFORE we update it
+  const localWasAlreadyCompleted = match ? match.status === 'Completed' : false;
 
   if (match) {
     const homeTeam = teams.find(t => t.id === match.home_team_id);
@@ -753,8 +760,8 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
       else { awayTeam.losses += 1; }
     }
 
-    // Save goals to players
-    if (playerScorers && playerScorers.length > 0) {
+    // Save goals to players (only on first completion, not re-scores)
+    if (!wasAlreadyCompleted && playerScorers && playerScorers.length > 0) {
       for (const sc of playerScorers) {
         const pl = players.find(p => p.id === sc.playerId);
         if (pl && sc.count > 0) {
@@ -771,58 +778,60 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
   // 3. SAVE MATCH EVENTS & LINEUPS
   await saveMatchDetails(matchId, { events, lineups });
 
-  // 4. PROCESS DISCIPLINARY CARDS & SUSPENSION RULES
-  const discRules = getDisciplinarySettings();
-  let discCache = {};
-  try {
-    discCache = JSON.parse(localStorage.getItem('mfv_player_discipline') || '{}');
-  } catch (_) {}
+  // 4. PROCESS DISCIPLINARY CARDS & SUSPENSION RULES (only on first completion)
+  if (!localWasAlreadyCompleted) {
+    // This block only runs when match was NOT already completed in localStorage
+    const discRules = getDisciplinarySettings();
+    let discCache = {};
+    try {
+      discCache = JSON.parse(localStorage.getItem('mfv_player_discipline') || '{}');
+    } catch (_) {}
 
-  // Apply yellow / red cards from events
-  if (events && events.length > 0) {
-    for (const ev of events) {
-      if (!ev.playerId) continue;
-      const pid = ev.playerId;
-      const cur = discCache[pid] || { yellow_cards: 0, red_cards: 0, is_suspended: false, suspension_matches_remaining: 0, suspension_reason: '' };
+    // Apply yellow / red cards from events
+    if (events && events.length > 0) {
+      for (const ev of events) {
+        if (!ev.playerId) continue;
+        const pid = ev.playerId;
+        const cur = discCache[pid] || { yellow_cards: 0, red_cards: 0, is_suspended: false, suspension_matches_remaining: 0, suspension_reason: '' };
 
-      if (ev.type === 'yellow_card') {
-        cur.yellow_cards = (cur.yellow_cards || 0) + 1;
-        // Check yellow card suspension threshold
-        if (cur.yellow_cards >= discRules.yellow_card_limit && (cur.yellow_cards % discRules.yellow_card_limit === 0)) {
+        if (ev.type === 'yellow_card') {
+          cur.yellow_cards = (cur.yellow_cards || 0) + 1;
+          // Check yellow card suspension threshold
+          if (cur.yellow_cards >= discRules.yellow_card_limit && (cur.yellow_cards % discRules.yellow_card_limit === 0)) {
+            cur.is_suspended = true;
+            cur.suspension_matches_remaining = 1;
+            cur.suspension_reason = `Suspended for next match (${cur.yellow_cards} Yellow Cards)`;
+          }
+        } else if (ev.type === 'red_card') {
+          cur.red_cards = (cur.red_cards || 0) + 1;
           cur.is_suspended = true;
-          cur.suspension_matches_remaining = 1;
-          cur.suspension_reason = `Suspended for next match (${cur.yellow_cards} Yellow Cards)`;
+          cur.suspension_matches_remaining = discRules.red_card_suspension_matches;
+          cur.suspension_reason = `Suspended for next ${discRules.red_card_suspension_matches} matches (Direct Red Card)`;
         }
-      } else if (ev.type === 'red_card') {
-        cur.red_cards = (cur.red_cards || 0) + 1;
-        cur.is_suspended = true;
-        cur.suspension_matches_remaining = discRules.red_card_suspension_matches;
-        cur.suspension_reason = `Suspended for next ${discRules.red_card_suspension_matches} matches (Direct Red Card)`;
-      }
 
-      discCache[pid] = cur;
+        discCache[pid] = cur;
+      }
     }
-  }
 
-  // Serve suspensions for suspended players belonging to the two teams who were already serving a ban
-  if (match) {
-    const playingTeamIds = [match.home_team_id, match.away_team_id];
-    Object.keys(discCache).forEach(pid => {
-      const p = discCache[pid];
-      // Only advance if player was suspended BEFORE this match events
-      const gotCardInThisMatch = events.some(e => e.playerId === pid && (e.type === 'yellow_card' || e.type === 'red_card'));
-      if (p.is_suspended && !gotCardInThisMatch && p.suspension_matches_remaining > 0) {
-        p.suspension_matches_remaining -= 1;
-        if (p.suspension_matches_remaining <= 0) {
-          p.is_suspended = false;
-          p.suspension_matches_remaining = 0;
-          p.suspension_reason = '';
+    // Serve suspensions for suspended players belonging to the two teams who were already serving a ban
+    if (match) {
+      Object.keys(discCache).forEach(pid => {
+        const p = discCache[pid];
+        // Only advance if player was suspended BEFORE this match events
+        const gotCardInThisMatch = events.some(e => e.playerId === pid && (e.type === 'yellow_card' || e.type === 'red_card'));
+        if (p.is_suspended && !gotCardInThisMatch && p.suspension_matches_remaining > 0) {
+          p.suspension_matches_remaining -= 1;
+          if (p.suspension_matches_remaining <= 0) {
+            p.is_suspended = false;
+            p.suspension_matches_remaining = 0;
+            p.suspension_reason = '';
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
-  localStorage.setItem('mfv_player_discipline', JSON.stringify(discCache));
+    localStorage.setItem('mfv_player_discipline', JSON.stringify(discCache));
+  }
 
   return { success: true };
 }
