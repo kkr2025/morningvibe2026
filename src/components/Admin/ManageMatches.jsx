@@ -66,6 +66,11 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
   const [eventType, setEventType] = useState('goal'); // 'goal', 'yellow_card', 'red_card'
   const [eventMinute, setEventMinute] = useState('');
 
+  // Inline event editing state
+  const [editingEventIdx, setEditingEventIdx] = useState(null);
+  const [editEvPlayerId, setEditEvPlayerId] = useState('');
+  const [editEvMinute, setEditEvMinute] = useState('');
+
   // Sync teams selection if empty
   React.useEffect(() => {
     if (teams.length >= 2) {
@@ -235,6 +240,9 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
     setEventPlayerId('');
     setEventType('goal');
     setEventMinute('');
+    setEditingEventIdx(null);
+    setEditEvPlayerId('');
+    setEditEvMinute('');
     setError(null);
   };
 
@@ -260,6 +268,40 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
     const updated = [...modalMatchEvents];
     updated.splice(idx, 1);
     setModalMatchEvents(updated);
+  };
+
+  // Start inline editing an event row
+  const handleStartEditEvent = (idx) => {
+    const ev = modalMatchEvents[idx];
+    setEditingEventIdx(idx);
+    setEditEvPlayerId(ev.playerId || '');
+    setEditEvMinute(ev.minute !== null && ev.minute !== undefined ? String(ev.minute) : '');
+  };
+
+  // Save the inline edit
+  const handleSaveEditEvent = (idx) => {
+    if (!editEvPlayerId) return;
+    const p = players.find(x => x.id === editEvPlayerId);
+    if (!p) return;
+    const updated = [...modalMatchEvents];
+    updated[idx] = {
+      ...updated[idx],
+      playerId: p.id,
+      playerName: p.name,
+      teamId: p.team_id,
+      minute: editEvMinute ? parseInt(editEvMinute, 10) : null,
+    };
+    setModalMatchEvents(updated);
+    setEditingEventIdx(null);
+    setEditEvPlayerId('');
+    setEditEvMinute('');
+  };
+
+  // Cancel inline edit
+  const handleCancelEditEvent = () => {
+    setEditingEventIdx(null);
+    setEditEvPlayerId('');
+    setEditEvMinute('');
   };
 
   // Submit Score Entry (Complete Match with trigger logic and disciplinary cards)
@@ -1025,15 +1067,85 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
                         <tr className="bg-slate-100 text-slate-500 font-black uppercase text-[10px]">
                           <td className="px-3 py-2 w-8"></td>
                           <td className="px-3 py-2">Player</td>
-                          <td className="px-3 py-2 text-center w-12">Min</td>
+                          <td className="px-3 py-2 text-center w-16">Min</td>
                           <td className="px-3 py-2 text-center">Team</td>
-                          <td className="px-2 py-2 w-6"></td>
+                          <td className="px-2 py-2 w-16 text-center">Actions</td>
                         </tr>
                       </thead>
                       <tbody>
                         {modalMatchEvents.map((ev, idx) => {
                           const evTeam = teams.find(t => t.id === ev.teamId);
                           const isHome = ev.teamId === scoringMatch.home_team_id;
+                          const isEditing = editingEventIdx === idx;
+
+                          if (isEditing) {
+                            // ── EDIT ROW ──
+                            return (
+                              <tr key={idx} className="border-t border-amber-200 bg-amber-50">
+                                <td className="px-3 py-2 text-base">
+                                  {ev.type === 'goal' && '⚽'}
+                                  {ev.type === 'yellow_card' && '🟨'}
+                                  {ev.type === 'red_card' && '🟥'}
+                                </td>
+                                <td className="px-2 py-1.5" colSpan={1}>
+                                  <select
+                                    value={editEvPlayerId}
+                                    onChange={e => setEditEvPlayerId(e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-white border-2 border-amber-400 rounded-lg text-xs font-bold focus:outline-none"
+                                  >
+                                    <option value="">-- Select Player --</option>
+                                    <optgroup label={`🏠 ${teams.find(t => t.id === scoringMatch.home_team_id)?.name || 'Home'}`}>
+                                      {players.filter(p => p.team_id === scoringMatch.home_team_id).map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                      ))}
+                                    </optgroup>
+                                    <optgroup label={`✈️ ${teams.find(t => t.id === scoringMatch.away_team_id)?.name || 'Away'}`}>
+                                      {players.filter(p => p.team_id === scoringMatch.away_team_id).map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                      ))}
+                                    </optgroup>
+                                  </select>
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="120"
+                                    placeholder="Min"
+                                    value={editEvMinute}
+                                    onChange={e => setEditEvMinute(e.target.value)}
+                                    className="w-14 px-2 py-1.5 bg-white border-2 border-amber-400 rounded-lg text-xs font-black text-center focus:outline-none"
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isHome ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`}>
+                                    {isHome ? '🏠' : '✈️'} {evTeam?.name || '—'}
+                                  </span>
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <div className="flex items-center gap-1 justify-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveEditEvent(idx)}
+                                      disabled={!editEvPlayerId}
+                                      className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black disabled:opacity-40"
+                                    >
+                                      ✓ Save
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelEditEvent}
+                                      className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[10px] font-black"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          // ── NORMAL ROW ──
                           return (
                             <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50">
                               <td className="px-3 py-2 text-base">
@@ -1049,13 +1161,24 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
                                 </span>
                               </td>
                               <td className="px-2 py-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveEvent(idx)}
-                                  className="text-slate-300 hover:text-red-600 font-black text-lg leading-none"
-                                >
-                                  ✕
-                                </button>
+                                <div className="flex items-center gap-1.5 justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartEditEvent(idx)}
+                                    className="text-slate-400 hover:text-amber-600 transition-colors"
+                                    title="Edit this entry"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveEvent(idx)}
+                                    className="text-slate-300 hover:text-red-600 font-black text-lg leading-none"
+                                    title="Delete this entry"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
