@@ -15,13 +15,15 @@ import {
   Calendar,
   Users,
   Shield,
-  FileJson
+  FileJson,
+  RefreshCw
 } from 'lucide-react';
 import { 
   exportTournamentBackup, 
   restoreTournamentBackup, 
   deleteAllTournamentData, 
   resetDemoData, 
+  recalculateAllStats,
   isSupabaseConfigured 
 } from '../../lib/supabase';
 
@@ -51,6 +53,10 @@ CREATE TABLE IF NOT EXISTS public.players (
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('Forward', 'Midfielder', 'Center Back', 'Goalkeeper', 'Coach')),
   goals INTEGER DEFAULT 0,
+  yellow_cards INTEGER NOT NULL DEFAULT 0,
+  red_cards INTEGER NOT NULL DEFAULT 0,
+  is_suspended BOOLEAN NOT NULL DEFAULT false,
+  suspension_reason TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -63,8 +69,19 @@ CREATE TABLE IF NOT EXISTS public.matches (
   home_score INTEGER DEFAULT 0,
   away_score INTEGER DEFAULT 0,
   status TEXT DEFAULT 'Scheduled' CHECK (status IN ('Scheduled', 'Completed')),
+  events JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- ========================================================
+-- MIGRATION: Add new columns if tables already exist
+-- (Run these if you created tables without the new columns)
+-- ========================================================
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS yellow_cards INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS red_cards INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE public.players ADD COLUMN IF NOT EXISTS suspension_reason TEXT DEFAULT '';
+ALTER TABLE public.matches ADD COLUMN IF NOT EXISTS events JSONB DEFAULT '[]'::jsonb;
 
 -- 4. Enable Row Level Security (RLS) & Public Policies
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
@@ -87,7 +104,7 @@ CREATE POLICY "Public Insert/Update/Delete Matches" ON public.matches FOR ALL US
 -- COMMAND A: Clear all matches & reset points table to zero
 -- TRUNCATE TABLE public.matches;
 -- UPDATE public.teams SET matches_played=0, wins=0, draws=0, losses=0, goals_for=0, goals_against=0, points=0;
--- UPDATE public.players SET goals=0;
+-- UPDATE public.players SET goals=0, yellow_cards=0, red_cards=0, is_suspended=false;
 
 -- COMMAND B: Complete Database Factory Reset (Delete Everything)
 -- TRUNCATE TABLE public.matches CASCADE;
@@ -102,6 +119,8 @@ export default function ManageData({ matches = [], players = [], teams = [], onD
   const [restorePreview, setRestorePreview] = useState(null);
   const [showSqlModal, setShowSqlModal] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
   
   // Danger Zone confirmation states
   const [wipeMode, setWipeMode] = useState(null); // 'matches' | 'cards' | 'factory' | 'demo'
@@ -212,6 +231,23 @@ export default function ManageData({ matches = [], players = [], teams = [], onD
     navigator.clipboard.writeText(SUPABASE_SQL_CODE);
     setCopiedSql(true);
     setTimeout(() => setCopiedSql(false), 2500);
+  };
+
+  const handleRecalculate = async () => {
+    try {
+      setIsRecalculating(true);
+      setShowRecalcConfirm(false);
+      const result = await recalculateAllStats();
+      setMessage({
+        type: 'success',
+        text: `✅ Stats recalculated from ${result.summary.matchesProcessed} completed match(es)! ${result.summary.teamsReset} teams and ${result.summary.playersReset} players corrected. Reload the page to see updated standings.`
+      });
+      if (onDataRefreshed) onDataRefreshed();
+    } catch (err) {
+      setMessage({ type: 'error', text: `Recalculation failed: ${err.message}` });
+    } finally {
+      setIsRecalculating(false);
+    }
   };
 
   return (
@@ -402,8 +438,81 @@ export default function ManageData({ matches = [], players = [], teams = [], onD
 
       </div>
 
-      {/* CARD 3: DANGER ZONE (DELETE ALL DATA & RESETS) */}
-      <div className="bg-white rounded-3xl p-6 border-2 border-red-200 shadow-xl space-y-5">
+      {/* CARD RECALCULATE: Fix corrupted/doubled stats from Supabase */}
+      <div className="bg-white rounded-3xl p-6 border-2 border-emerald-200 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+              <RefreshCw className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-slate-900 text-base font-display">
+                🔄 Recalculate All Stats
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Fix doubled or corrupted standings by recalculating from match events stored in Supabase.
+              </p>
+            </div>
+          </div>
+          {!isSupabaseConfigured && (
+            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200 self-start">
+              Requires Supabase
+            </span>
+          )}
+        </div>
+
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 leading-relaxed space-y-1.5">
+          <div className="font-bold text-emerald-800">What this does:</div>
+          <ul className="list-disc pl-4 space-y-1 text-emerald-900/90">
+            <li>Resets ALL team standings (P/W/D/L/GF/GA/Pts) to <strong>0</strong></li>
+            <li>Resets ALL player goals, yellow cards, red cards to <strong>0</strong></li>
+            <li>Re-processes every completed match from Supabase to get correct totals</li>
+            <li>Rebuilds the discipline (yellow/red card) records from match events</li>
+            <li>Use this to fix double-counted stats if a match was recorded twice</li>
+          </ul>
+          <p className="text-amber-700 font-semibold pt-1">⚠️ Requires the SQL migration (events column) to be run first. Only works with Supabase.</p>
+        </div>
+
+        {showRecalcConfirm && (
+          <div className="p-4 rounded-2xl bg-emerald-900 text-white border-2 border-emerald-500 space-y-3 animate-fade-in-up">
+            <div className="font-black text-amber-400 text-sm flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>Confirm Recalculation</span>
+            </div>
+            <p className="text-xs text-slate-300">
+              This will reset ALL team and player stats to 0, then recalculate from completed match events. Continue?
+            </p>
+            <div className="flex items-center space-x-3 pt-1">
+              <button
+                onClick={handleRecalculate}
+                disabled={isRecalculating}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isRecalculating ? 'Recalculating...' : 'Yes, Recalculate Now'}
+              </button>
+              <button
+                onClick={() => setShowRecalcConfirm(false)}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 font-bold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!showRecalcConfirm && (
+          <button
+            onClick={() => setShowRecalcConfirm(true)}
+            disabled={!isSupabaseConfigured || isRecalculating}
+            className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>{isRecalculating ? 'Recalculating Stats...' : '🔄 Recalculate All Stats from Results'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* CARD 3: DANGER ZONE (DELETE ALL DATA & RESETS) */}      <div className="bg-white rounded-3xl p-6 border-2 border-red-200 shadow-xl space-y-5">
         
         <div className="flex items-center space-x-2.5 pb-4 border-b border-red-100">
           <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center font-bold">

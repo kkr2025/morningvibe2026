@@ -126,10 +126,13 @@ export async function getPlayers() {
 
   const enriched = playersList.map(p => {
     const disc = disciplineCache[p.id] || {};
+    // Prefer Supabase DB yellow_cards/red_cards if they are non-null integers (columns may now exist)
+    const dbYellow = (p.yellow_cards !== null && p.yellow_cards !== undefined) ? p.yellow_cards : undefined;
+    const dbRed = (p.red_cards !== null && p.red_cards !== undefined) ? p.red_cards : undefined;
     return {
       ...p,
-      yellow_cards: disc.yellow_cards !== undefined ? disc.yellow_cards : (p.yellow_cards || 0),
-      red_cards: disc.red_cards !== undefined ? disc.red_cards : (p.red_cards || 0),
+      yellow_cards: dbYellow !== undefined ? dbYellow : (disc.yellow_cards || 0),
+      red_cards: dbRed !== undefined ? dbRed : (disc.red_cards || 0),
       is_suspended: disc.is_suspended !== undefined ? disc.is_suspended : Boolean(p.is_suspended),
       suspension_matches_remaining: disc.suspension_matches_remaining || 0,
       suspension_reason: disc.suspension_reason || '',
@@ -197,9 +200,12 @@ export async function getMatches() {
 
   return matchesList.map(m => {
     const details = matchDetailsCache[m.id] || {};
+    // Prefer Supabase events (from DB) over localStorage cache; fallback to empty
+    const supabaseEvents = Array.isArray(m.events) && m.events.length > 0 ? m.events : null;
+    const localEvents = Array.isArray(details.events) && details.events.length > 0 ? details.events : null;
     return {
       ...m,
-      events: details.events || m.events || [],
+      events: supabaseEvents || localEvents || [],
       lineups: details.lineups || m.lineups || { home_starting: [], away_starting: [] },
     };
   }).sort((a, b) => new Date(a.match_time) - new Date(b.match_time));
@@ -646,11 +652,12 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
       const homePts = homeWin * 3 + draw * 1;
       const awayPts = awayWin * 3 + draw * 1;
 
-      // Update match status
+      // Update match status (and persist events into Supabase)
       await supabase.from('matches').update({
         home_score: hScore,
         away_score: aScore,
-        status: 'Completed'
+        status: 'Completed',
+        events: events || []
       }).eq('id', matchId);
 
       // Only update team stats if this match was NOT already completed (avoid double-counting)
@@ -1197,4 +1204,162 @@ export async function deleteAllTournamentData(scope = 'all') {
   }
 
   throw new Error(`Unknown scope: ${scope}`);
+}
+
+/**
+ * Recalculate ALL team standings and player stats from scratch.
+ * Reads all completed matches from Supabase, resets every team/player to 0,
+ * then re-processes each match to get correct totals.
+ * Also rebuilds the localStorage discipline cache from match events.
+ */
+export async function recalculateAllStats() {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('Supabase connection required for recalculation. Please configure Supabase credentials.');
+  }
+
+  // 1. Fetch all teams, players, and completed matches
+  const { data: allTeams, error: teamsErr } = await supabase.from('teams').select('*');
+  if (teamsErr) throw teamsErr;
+
+  const { data: allPlayers, error: playersErr } = await supabase.from('players').select('*');
+  if (playersErr) throw playersErr;
+
+  const { data: completedMatches, error: matchesErr } = await supabase
+    .from('matches').select('*').eq('status', 'Completed');
+  if (matchesErr) throw matchesErr;
+
+  // 2. Reset ALL teams to zero
+  for (const t of (allTeams || [])) {
+    await supabase.from('teams').update({
+      matches_played: 0, wins: 0, draws: 0, losses: 0,
+      goals_for: 0, goals_against: 0, points: 0
+    }).eq('id', t.id);
+  }
+
+  // 3. Reset ALL player goals (and cards if columns exist)
+  for (const p of (allPlayers || [])) {
+    const resetObj = { goals: 0 };
+    // Try to reset card columns too (they may or may not exist)
+    try { resetObj.yellow_cards = 0; resetObj.red_cards = 0; } catch (_) {}
+    await supabase.from('players').update(resetObj).eq('id', p.id);
+  }
+
+  // 4. Build fresh team stats map
+  const teamStats = {};
+  for (const t of (allTeams || [])) {
+    teamStats[t.id] = { matches_played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0, points: 0 };
+  }
+
+  // 5. Build fresh player stats map
+  const playerGoals = {};
+  const playerYellows = {};
+  const playerReds = {};
+  for (const p of (allPlayers || [])) {
+    playerGoals[p.id] = 0;
+    playerYellows[p.id] = 0;
+    playerReds[p.id] = 0;
+  }
+
+  // 6. Re-process every completed match
+  for (const match of (completedMatches || [])) {
+    const hScore = match.home_score || 0;
+    const aScore = match.away_score || 0;
+    const homeWin = hScore > aScore;
+    const awayWin = aScore > hScore;
+    const draw = hScore === aScore;
+
+    if (teamStats[match.home_team_id]) {
+      const ht = teamStats[match.home_team_id];
+      ht.matches_played += 1;
+      ht.goals_for += hScore;
+      ht.goals_against += aScore;
+      if (homeWin) { ht.wins += 1; ht.points += 3; }
+      else if (draw) { ht.draws += 1; ht.points += 1; }
+      else { ht.losses += 1; }
+    }
+
+    if (teamStats[match.away_team_id]) {
+      const at = teamStats[match.away_team_id];
+      at.matches_played += 1;
+      at.goals_for += aScore;
+      at.goals_against += hScore;
+      if (awayWin) { at.wins += 1; at.points += 3; }
+      else if (draw) { at.draws += 1; at.points += 1; }
+      else { at.losses += 1; }
+    }
+
+    // Re-process events for goals/cards
+    const events = Array.isArray(match.events) ? match.events : [];
+    for (const ev of events) {
+      if (!ev.playerId) continue;
+      if (ev.type === 'goal') {
+        playerGoals[ev.playerId] = (playerGoals[ev.playerId] || 0) + 1;
+      } else if (ev.type === 'yellow_card') {
+        playerYellows[ev.playerId] = (playerYellows[ev.playerId] || 0) + 1;
+      } else if (ev.type === 'red_card') {
+        playerReds[ev.playerId] = (playerReds[ev.playerId] || 0) + 1;
+      }
+    }
+  }
+
+  // 7. Write recalculated team stats back to Supabase
+  for (const [teamId, stats] of Object.entries(teamStats)) {
+    await supabase.from('teams').update(stats).eq('id', teamId);
+  }
+
+  // 8. Write recalculated player goals/cards back to Supabase
+  for (const [playerId, goals] of Object.entries(playerGoals)) {
+    const updateObj = { goals };
+    try { updateObj.yellow_cards = playerYellows[playerId] || 0; updateObj.red_cards = playerReds[playerId] || 0; } catch (_) {}
+    await supabase.from('players').update(updateObj).eq('id', playerId);
+  }
+
+  // 9. Rebuild localStorage team stats to match Supabase
+  const rawTeams = localStorage.getItem('mfv_teams_data');
+  if (rawTeams) {
+    try {
+      const localTeams = JSON.parse(rawTeams).map(t => ({
+        ...t,
+        ...(teamStats[t.id] || {})
+      }));
+      localStorage.setItem('mfv_teams_data', JSON.stringify(localTeams));
+    } catch (_) {}
+  }
+
+  // 10. Rebuild localStorage discipline cache from recalculated events
+  const discCache = {};
+  const discRules = getDisciplinarySettings();
+  for (const match of (completedMatches || [])) {
+    const events = Array.isArray(match.events) ? match.events : [];
+    for (const ev of events) {
+      if (!ev.playerId) continue;
+      const pid = ev.playerId;
+      if (!discCache[pid]) {
+        discCache[pid] = { yellow_cards: 0, red_cards: 0, is_suspended: false, suspension_matches_remaining: 0, suspension_reason: '' };
+      }
+      if (ev.type === 'yellow_card') {
+        discCache[pid].yellow_cards += 1;
+        if (discCache[pid].yellow_cards >= discRules.yellow_card_limit && (discCache[pid].yellow_cards % discRules.yellow_card_limit === 0)) {
+          discCache[pid].is_suspended = true;
+          discCache[pid].suspension_matches_remaining = 1;
+          discCache[pid].suspension_reason = `Suspended for next match (${discCache[pid].yellow_cards} Yellow Cards)`;
+        }
+      } else if (ev.type === 'red_card') {
+        discCache[pid].red_cards += 1;
+        discCache[pid].is_suspended = true;
+        discCache[pid].suspension_matches_remaining = discRules.red_card_suspension_matches;
+        discCache[pid].suspension_reason = `Suspended for next ${discRules.red_card_suspension_matches} matches (Direct Red Card)`;
+      }
+    }
+  }
+  localStorage.setItem('mfv_player_discipline', JSON.stringify(discCache));
+
+  return {
+    success: true,
+    summary: {
+      teamsReset: (allTeams || []).length,
+      playersReset: (allPlayers || []).length,
+      matchesProcessed: (completedMatches || []).length,
+    }
+  };
 }
