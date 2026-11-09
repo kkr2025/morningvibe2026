@@ -874,66 +874,90 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in-up">
           <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-7 shadow-2xl border border-amber-300">
             <div className="text-center pb-3 border-b border-slate-100">
-              <span className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center mx-auto mb-2 font-black">
+              <span className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center mx-auto mb-2 font-black text-xl">
                 🏆
               </span>
-              <h4 className="text-lg font-black text-slate-900 font-display">
-                Record Matchday Result, Goals & Cards
+              <h4 className="text-xl font-black text-slate-900 font-display">
+                Record Matchday Result
               </h4>
-              <p className="text-xs text-slate-500">
-                Enter score, attribute goalscorers, and log disciplinary yellow/red cards.
+              <p className="text-sm text-slate-500 mt-1">
+                Enter score, attribute goalscorers, and log yellow/red cards.
               </p>
             </div>
 
             <form onSubmit={handleSaveScore} className="mt-5 space-y-5">
               
               {/* Score Input Box */}
-              <div className="grid grid-cols-5 items-center gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              <div className="grid grid-cols-5 items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <div className="col-span-2 text-center">
-                  <div className="font-extrabold text-slate-800 text-xs sm:text-sm mb-1.5 truncate">
+                  <div className="font-black text-slate-900 text-sm sm:text-base mb-1 truncate leading-tight">
                     {teams.find(t => t.id === scoringMatch.home_team_id)?.name || 'Home'}
                   </div>
+                  <div className="text-[10px] font-bold text-red-700 uppercase tracking-wider mb-2">🏠 Home</div>
                   <input
                     type="number"
                     min="0"
                     value={scoreHome}
                     onChange={(e) => setScoreHome(parseInt(e.target.value, 10) || 0)}
-                    className="w-20 mx-auto px-2 py-2 border-2 border-amber-300 focus:border-amber-500 rounded-xl text-2xl font-black text-center text-slate-900 bg-white shadow-inner"
+                    className="w-20 mx-auto px-2 py-2.5 border-2 border-amber-300 focus:border-amber-500 rounded-xl text-3xl font-black text-center text-slate-900 bg-white shadow-inner block"
                   />
                 </div>
 
-                <div className="col-span-1 text-center font-black text-slate-400 text-lg">
+                <div className="col-span-1 text-center font-black text-slate-400 text-2xl mt-6">
                   :
                 </div>
 
                 <div className="col-span-2 text-center">
-                  <div className="font-extrabold text-slate-800 text-xs sm:text-sm mb-1.5 truncate">
+                  <div className="font-black text-slate-900 text-sm sm:text-base mb-1 truncate leading-tight">
                     {teams.find(t => t.id === scoringMatch.away_team_id)?.name || 'Away'}
                   </div>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">✈️ Away</div>
                   <input
                     type="number"
                     min="0"
                     value={scoreAway}
                     onChange={(e) => setScoreAway(parseInt(e.target.value, 10) || 0)}
-                    className="w-20 mx-auto px-2 py-2 border-2 border-amber-300 focus:border-amber-500 rounded-xl text-2xl font-black text-center text-slate-900 bg-white shadow-inner"
+                    className="w-20 mx-auto px-2 py-2.5 border-2 border-amber-300 focus:border-amber-500 rounded-xl text-3xl font-black text-center text-slate-900 bg-white shadow-inner block"
                   />
                 </div>
               </div>
 
+              {/* Event Summary Badges */}
+              {modalMatchEvents.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {modalMatchEvents.filter(e => e.type === 'goal').length > 0 && (
+                    <span className="flex items-center gap-1 px-3 py-1 bg-green-50 border border-green-200 rounded-full text-sm font-bold text-green-800">
+                      ⚽ {modalMatchEvents.filter(e => e.type === 'goal').length} Goal{modalMatchEvents.filter(e => e.type === 'goal').length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {modalMatchEvents.filter(e => e.type === 'yellow_card').length > 0 && (
+                    <span className="flex items-center gap-1 px-3 py-1 bg-yellow-50 border border-yellow-200 rounded-full text-sm font-bold text-yellow-800">
+                      🟨 {modalMatchEvents.filter(e => e.type === 'yellow_card').length} Yellow{modalMatchEvents.filter(e => e.type === 'yellow_card').length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {modalMatchEvents.filter(e => e.type === 'red_card').length > 0 && (
+                    <span className="flex items-center gap-1 px-3 py-1 bg-red-50 border border-red-200 rounded-full text-sm font-bold text-red-800">
+                      🟥 {modalMatchEvents.filter(e => e.type === 'red_card').length} Red{modalMatchEvents.filter(e => e.type === 'red_card').length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Match Events: Add Goal Scorer or Card */}
-              <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200">
-                <div className="text-xs font-black uppercase tracking-wider text-amber-900 mb-2 flex items-center justify-between">
-                  <span>Log Match Events (Goals & Cards)</span>
-                  <span className="text-[10px] font-bold text-amber-700">Auto-Suspension Enabled</span>
+              <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-200">
+                <div className="text-sm font-black uppercase tracking-wider text-amber-900 mb-3 flex items-center justify-between">
+                  <span>Log Goals &amp; Cards</span>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">Auto-Suspension ON</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
                   {/* Event Type */}
                   <div className="sm:col-span-3">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
                     <select
                       value={eventType}
                       onChange={(e) => setEventType(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold"
+                      className="w-full px-2.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                     >
                       <option value="goal">⚽ Goal</option>
                       <option value="yellow_card">🟨 Yellow</option>
@@ -941,95 +965,123 @@ export default function ManageMatches({ teams = [], matches = [], players = [], 
                     </select>
                   </div>
 
-                  {/* Player Selector from Home or Away */}
+                  {/* Player Selector */}
                   <div className="sm:col-span-6">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Player</label>
                     <select
                       value={eventPlayerId}
                       onChange={(e) => setEventPlayerId(e.target.value)}
-                      className="w-full px-2.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold truncate"
+                      className="w-full px-2.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold"
                     >
                       <option value="">-- Select Player --</option>
-                      <optgroup label="Home Squad">
+                      <optgroup label={`🏠 ${teams.find(t => t.id === scoringMatch.home_team_id)?.name || 'Home Squad'}`}>
                         {players.filter(p => p.team_id === scoringMatch.home_team_id).map(p => (
                           <option key={p.id} value={p.id}>
-                            {p.name} {p.is_suspended ? '⛔ (Banned)' : ''}
+                            {p.name}{p.is_suspended ? ' ⛔ Banned' : ''}
                           </option>
                         ))}
                       </optgroup>
-                      <optgroup label="Away Squad">
+                      <optgroup label={`✈️ ${teams.find(t => t.id === scoringMatch.away_team_id)?.name || 'Away Squad'}`}>
                         {players.filter(p => p.team_id === scoringMatch.away_team_id).map(p => (
                           <option key={p.id} value={p.id}>
-                            {p.name} {p.is_suspended ? '⛔ (Banned)' : ''}
+                            {p.name}{p.is_suspended ? ' ⛔ Banned' : ''}
                           </option>
                         ))}
                       </optgroup>
                     </select>
                   </div>
 
-                  {/* Minute */}
-                  <div className="sm:col-span-3 flex space-x-1.5">
-                    <input
-                      type="number"
-                      placeholder="Min '"
-                      min="1"
-                      max="120"
-                      value={eventMinute}
-                      onChange={(e) => setEventMinute(e.target.value)}
-                      className="w-16 px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-center"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddEvent}
-                      disabled={!eventPlayerId}
-                      className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition-colors disabled:opacity-50"
-                    >
-                      Add
-                    </button>
+                  {/* Minute + Add Button */}
+                  <div className="sm:col-span-3 flex gap-1.5">
+                    <div className="flex-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Min</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 45"
+                        min="1"
+                        value={eventMinute}
+                        onChange={(e) => setEventMinute(e.target.value)}
+                        className="w-full px-2 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-center"
+                      />
+                    </div>
+                    <div className="flex flex-col justify-end">
+                      <button
+                        type="button"
+                        onClick={handleAddEvent}
+                        disabled={!eventPlayerId}
+                        className="px-3 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-black transition-colors disabled:opacity-40"
+                      >
+                        Add
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* List of Added Events */}
+                {/* Events Table */}
                 {modalMatchEvents.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {modalMatchEvents.map((ev, idx) => (
-                      <span
-                        key={idx}
-                        className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold shadow-2xs"
-                      >
-                        {ev.type === 'goal' && <span>⚽</span>}
-                        {ev.type === 'yellow_card' && <span>🟨</span>}
-                        {ev.type === 'red_card' && <span>🟥</span>}
-                        <span>{ev.playerName}</span>
-                        {ev.minute && <span className="text-slate-400">({ev.minute}')</span>}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEvent(idx)}
-                          className="ml-1 text-slate-400 hover:text-red-600"
-                        >
-                          ✕
-                        </button>
-                      </span>
-                    ))}
+                  <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-white">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-500 font-black uppercase text-[10px]">
+                          <td className="px-3 py-2 w-8"></td>
+                          <td className="px-3 py-2">Player</td>
+                          <td className="px-3 py-2 text-center w-12">Min</td>
+                          <td className="px-3 py-2 text-center">Team</td>
+                          <td className="px-2 py-2 w-6"></td>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {modalMatchEvents.map((ev, idx) => {
+                          const evTeam = teams.find(t => t.id === ev.teamId);
+                          const isHome = ev.teamId === scoringMatch.home_team_id;
+                          return (
+                            <tr key={idx} className="border-t border-slate-100 hover:bg-slate-50">
+                              <td className="px-3 py-2 text-base">
+                                {ev.type === 'goal' && '⚽'}
+                                {ev.type === 'yellow_card' && '🟨'}
+                                {ev.type === 'red_card' && '🟥'}
+                              </td>
+                              <td className="px-3 py-2 font-bold text-slate-800">{ev.playerName}</td>
+                              <td className="px-3 py-2 text-center text-slate-500 font-mono">{ev.minute ? `${ev.minute}'` : '—'}</td>
+                              <td className="px-3 py-2 text-center">
+                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${isHome ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-700'}`}>
+                                  {isHome ? '🏠' : '✈️'} {evTeam?.name || '—'}
+                                </span>
+                              </td>
+                              <td className="px-2 py-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveEvent(idx)}
+                                  className="text-slate-300 hover:text-red-600 font-black text-lg leading-none"
+                                >
+                                  ✕
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
-                  <div className="mt-2 text-[11px] text-slate-400 italic">
-                    No individual goals or cards logged yet.
+                  <div className="mt-3 text-sm text-slate-400 italic text-center py-3">
+                    No events logged yet. Select a player and click Add.
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-end space-x-2 pt-3 border-t">
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t">
                 <button
                   type="button"
                   onClick={() => setScoringMatch(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-amber-600 to-yellow-600 text-white font-black text-xs shadow-md"
+                  className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-red-600 via-amber-600 to-yellow-600 text-white font-black text-sm shadow-md"
                 >
                   {isSubmitting ? 'Recording...' : 'Complete & Update Table'}
                 </button>

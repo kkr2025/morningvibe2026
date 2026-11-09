@@ -12,7 +12,7 @@ import {
   ArrowRight,
   AlertTriangle
 } from 'lucide-react';
-import { formatRelativeMatchTime, getRoleBadgeClass } from '../lib/utils';
+import { formatRelativeMatchTime } from '../lib/utils';
 
 export default function MatchLineups({ matches = [], teams = [], players = [] }) {
   const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.id || null);
@@ -30,6 +30,73 @@ export default function MatchLineups({ matches = [], teams = [], players = [] })
 
   const lineups = selectedMatch?.lineups || { home_starting: [], away_starting: [] };
   const events = selectedMatch?.events || [];
+
+  // Position grouping config
+  const POSITION_ORDER = ['Goalkeeper', 'Center Back', 'Midfielder', 'Forward'];
+  const POSITION_LABELS = {
+    'Goalkeeper': '🧤 Goalkeeper',
+    'Center Back': '🛡️ Defenders',
+    'Midfielder': '⚡ Midfielders',
+    'Forward': '⚽ Forwards',
+  };
+
+  const groupByPosition = (playerList) => {
+    const grouped = {};
+    POSITION_ORDER.forEach(role => {
+      const inRole = playerList.filter(p => p.role === role || (role === 'Forward' && !POSITION_ORDER.includes(p.role)));
+      if (inRole.length > 0) grouped[role] = inRole;
+    });
+    return grouped;
+  };
+
+  const homeGrouped = groupByPosition(homePlayers);
+  const awayGrouped = groupByPosition(awayPlayers);
+
+  const renderPlayerRow = (player, lineupStarting) => {
+    const isStarting = lineupStarting?.includes(player.id);
+    return (
+      <div
+        key={player.id}
+        className={`p-3 rounded-xl border flex items-center justify-between transition-colors ${
+          player.is_suspended
+            ? 'bg-red-50/50 border-red-200 opacity-70'
+            : isStarting
+            ? 'bg-amber-50/60 border-amber-300 font-bold'
+            : 'bg-white border-slate-100 hover:border-slate-200'
+        }`}
+      >
+        <div className="flex items-center space-x-2.5">
+          <span className="font-bold text-slate-800 text-sm">{player.name}</span>
+          {isStarting && (
+            <span className="px-1.5 rounded bg-amber-400 text-red-950 text-[9px] font-black uppercase">
+              XI
+            </span>
+          )}
+        </div>
+
+        {/* Cards & Status */}
+        <div className="flex items-center space-x-2">
+          {player.yellow_cards > 0 && (
+            <span className="inline-flex items-center space-x-0.5 text-xs font-bold text-yellow-800 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-300">
+              <span>🟨</span>
+              <span>{player.yellow_cards}</span>
+            </span>
+          )}
+          {player.red_cards > 0 && (
+            <span className="inline-flex items-center space-x-0.5 text-xs font-bold text-red-800 bg-red-100 px-1.5 py-0.5 rounded border border-red-300">
+              <span>🟥</span>
+              <span>{player.red_cards}</span>
+            </span>
+          )}
+          {player.is_suspended && (
+            <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase">
+              Banned
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -203,59 +270,24 @@ export default function MatchLineups({ matches = [], teams = [], players = [] })
                 </div>
               )}
 
-              {/* Starting Players Roster */}
-              <div className="space-y-2">
+              {/* Starting Players Roster - Grouped by Position */}
+              <div className="space-y-1">
                 <div className="text-[10px] font-black uppercase text-slate-400 pb-1">
-                  Squad Players & Discipline
+                  Squad Players &amp; Discipline
                 </div>
-                {homePlayers.map((player) => {
-                  const isStarting = lineups.home_starting?.includes(player.id);
-                  return (
-                    <div
-                      key={player.id}
-                      className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
-                        player.is_suspended
-                          ? 'bg-red-50/50 border-red-200 opacity-70'
-                          : isStarting
-                          ? 'bg-amber-50/60 border-amber-300 font-bold'
-                          : 'bg-white border-slate-100 hover:border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <span className="font-bold text-slate-800">{player.name}</span>
-                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${getRoleBadgeClass(player.role)}`}>
-                          {player.role}
-                        </span>
-                        {isStarting && (
-                          <span className="px-1.5 py-0.2 rounded bg-amber-400 text-red-950 text-[9px] font-black uppercase">
-                            XI
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Cards & Status */}
-                      <div className="flex items-center space-x-2">
-                        {player.yellow_cards > 0 && (
-                          <span className="inline-flex items-center space-x-0.5 text-[11px] font-bold text-yellow-800 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-300">
-                            <span>🟨</span>
-                            <span>{player.yellow_cards}</span>
-                          </span>
-                        )}
-                        {player.red_cards > 0 && (
-                          <span className="inline-flex items-center space-x-0.5 text-[11px] font-bold text-red-800 bg-red-100 px-1.5 py-0.5 rounded border border-red-300">
-                            <span>🟥</span>
-                            <span>{player.red_cards}</span>
-                          </span>
-                        )}
-                        {player.is_suspended && (
-                          <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase">
-                            Banned
-                          </span>
-                        )}
-                      </div>
+                {Object.entries(homeGrouped).map(([role, rolePlayers]) => (
+                  <div key={role}>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-red-700 bg-red-50 px-2 py-1 rounded-lg mb-1 mt-2 border border-red-100">
+                      {POSITION_LABELS[role] || role}
                     </div>
-                  );
-                })}
+                    <div className="space-y-1.5">
+                      {rolePlayers.map(player => renderPlayerRow(player, lineups.home_starting))}
+                    </div>
+                  </div>
+                ))}
+                {homePlayers.length === 0 && (
+                  <div className="text-xs text-slate-400 italic text-center py-4">No players registered.</div>
+                )}
               </div>
 
             </div>
@@ -290,59 +322,24 @@ export default function MatchLineups({ matches = [], teams = [], players = [] })
                 </div>
               )}
 
-              {/* Starting Players Roster */}
-              <div className="space-y-2">
+              {/* Starting Players Roster - Grouped by Position */}
+              <div className="space-y-1">
                 <div className="text-[10px] font-black uppercase text-slate-400 pb-1">
-                  Squad Players & Discipline
+                  Squad Players &amp; Discipline
                 </div>
-                {awayPlayers.map((player) => {
-                  const isStarting = lineups.away_starting?.includes(player.id);
-                  return (
-                    <div
-                      key={player.id}
-                      className={`p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors ${
-                        player.is_suspended
-                          ? 'bg-red-50/50 border-red-200 opacity-70'
-                          : isStarting
-                          ? 'bg-amber-50/60 border-amber-300 font-bold'
-                          : 'bg-white border-slate-100 hover:border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <span className="font-bold text-slate-800">{player.name}</span>
-                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${getRoleBadgeClass(player.role)}`}>
-                          {player.role}
-                        </span>
-                        {isStarting && (
-                          <span className="px-1.5 py-0.2 rounded bg-amber-400 text-red-950 text-[9px] font-black uppercase">
-                            XI
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Cards & Status */}
-                      <div className="flex items-center space-x-2">
-                        {player.yellow_cards > 0 && (
-                          <span className="inline-flex items-center space-x-0.5 text-[11px] font-bold text-yellow-800 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-300">
-                            <span>🟨</span>
-                            <span>{player.yellow_cards}</span>
-                          </span>
-                        )}
-                        {player.red_cards > 0 && (
-                          <span className="inline-flex items-center space-x-0.5 text-[11px] font-bold text-red-800 bg-red-100 px-1.5 py-0.5 rounded border border-red-300">
-                            <span>🟥</span>
-                            <span>{player.red_cards}</span>
-                          </span>
-                        )}
-                        {player.is_suspended && (
-                          <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase">
-                            Banned
-                          </span>
-                        )}
-                      </div>
+                {Object.entries(awayGrouped).map(([role, rolePlayers]) => (
+                  <div key={role}>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-slate-600 bg-slate-100 px-2 py-1 rounded-lg mb-1 mt-2 border border-slate-200">
+                      {POSITION_LABELS[role] || role}
                     </div>
-                  );
-                })}
+                    <div className="space-y-1.5">
+                      {rolePlayers.map(player => renderPlayerRow(player, lineups.away_starting))}
+                    </div>
+                  </div>
+                ))}
+                {awayPlayers.length === 0 && (
+                  <div className="text-xs text-slate-400 italic text-center py-4">No players registered.</div>
+                )}
               </div>
 
             </div>

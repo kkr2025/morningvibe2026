@@ -635,7 +635,7 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
         .single();
 
       if (matchFetchErr) throw matchFetchErr;
-      if (match.status === 'Completed') throw new Error('Match is already completed.');
+      const wasAlreadyCompleted = match.status === 'Completed';
 
       const { data: homeTeam } = await supabase.from('teams').select('*').eq('id', match.home_team_id).single();
       const { data: awayTeam } = await supabase.from('teams').select('*').eq('id', match.away_team_id).single();
@@ -653,27 +653,30 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
         status: 'Completed'
       }).eq('id', matchId);
 
-      // Update home team
-      await supabase.from('teams').update({
-        matches_played: (homeTeam.matches_played || 0) + 1,
-        wins: (homeTeam.wins || 0) + homeWin,
-        draws: (homeTeam.draws || 0) + draw,
-        losses: (homeTeam.losses || 0) + (awayWin ? 1 : 0),
-        goals_for: (homeTeam.goals_for || 0) + hScore,
-        goals_against: (homeTeam.goals_against || 0) + aScore,
-        points: (homeTeam.points || 0) + homePts
-      }).eq('id', homeTeam.id);
+      // Only update team stats if this match was NOT already completed (avoid double-counting)
+      if (!wasAlreadyCompleted) {
+        // Update home team
+        await supabase.from('teams').update({
+          matches_played: (homeTeam.matches_played || 0) + 1,
+          wins: (homeTeam.wins || 0) + homeWin,
+          draws: (homeTeam.draws || 0) + draw,
+          losses: (homeTeam.losses || 0) + (awayWin ? 1 : 0),
+          goals_for: (homeTeam.goals_for || 0) + hScore,
+          goals_against: (homeTeam.goals_against || 0) + aScore,
+          points: (homeTeam.points || 0) + homePts
+        }).eq('id', homeTeam.id);
 
-      // Update away team
-      await supabase.from('teams').update({
-        matches_played: (awayTeam.matches_played || 0) + 1,
-        wins: (awayTeam.wins || 0) + awayWin,
-        draws: (awayTeam.draws || 0) + draw,
-        losses: (awayTeam.losses || 0) + (homeWin ? 1 : 0),
-        goals_for: (awayTeam.goals_for || 0) + aScore,
-        goals_against: (awayTeam.goals_against || 0) + hScore,
-        points: (awayTeam.points || 0) + awayPts
-      }).eq('id', awayTeam.id);
+        // Update away team
+        await supabase.from('teams').update({
+          matches_played: (awayTeam.matches_played || 0) + 1,
+          wins: (awayTeam.wins || 0) + awayWin,
+          draws: (awayTeam.draws || 0) + draw,
+          losses: (awayTeam.losses || 0) + (homeWin ? 1 : 0),
+          goals_for: (awayTeam.goals_for || 0) + aScore,
+          goals_against: (awayTeam.goals_against || 0) + hScore,
+          points: (awayTeam.points || 0) + awayPts
+        }).eq('id', awayTeam.id);
+      }
 
       // Update individual player goals if provided
       if (playerScorers && playerScorers.length > 0) {
@@ -683,6 +686,20 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
             if (p) {
               await supabase.from('players').update({ goals: (p.goals || 0) + scorer.count }).eq('id', scorer.playerId);
             }
+          }
+        }
+      }
+
+      // Update player cards in Supabase players table
+      if (events && events.length > 0) {
+        for (const ev of events) {
+          if (!ev.playerId) continue;
+          if (ev.type === 'yellow_card') {
+            const { data: p } = await supabase.from('players').select('yellow_cards').eq('id', ev.playerId).single();
+            if (p) await supabase.from('players').update({ yellow_cards: (p.yellow_cards || 0) + 1 }).eq('id', ev.playerId);
+          } else if (ev.type === 'red_card') {
+            const { data: p } = await supabase.from('players').select('red_cards').eq('id', ev.playerId).single();
+            if (p) await supabase.from('players').update({ red_cards: (p.red_cards || 0) + 1 }).eq('id', ev.playerId);
           }
         }
       }
@@ -711,11 +728,14 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
     const isAwayWin = aScore > hScore;
     const isDraw = hScore === aScore;
 
+    // Check original status BEFORE changing it
+    const wasAlreadyCompleted = match.status === 'Completed';
+
     match.home_score = hScore;
     match.away_score = aScore;
     match.status = 'Completed';
 
-    if (homeTeam && match.status !== 'Completed') {
+    if (homeTeam && !wasAlreadyCompleted) {
       homeTeam.matches_played += 1;
       homeTeam.goals_for += hScore;
       homeTeam.goals_against += aScore;
@@ -724,7 +744,7 @@ export async function completeMatchResult({ matchId, homeScore, awayScore, playe
       else { homeTeam.losses += 1; }
     }
 
-    if (awayTeam && match.status !== 'Completed') {
+    if (awayTeam && !wasAlreadyCompleted) {
       awayTeam.matches_played += 1;
       awayTeam.goals_for += aScore;
       awayTeam.goals_against += hScore;
